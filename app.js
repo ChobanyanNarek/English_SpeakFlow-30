@@ -770,12 +770,18 @@
       const models = (data.models || [])
         .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
         .map((m) => m.name.replace(/^models\//, ''))
-        .filter((name) => !/embedding|imagen|veo|tts|audio|robotics/i.test(name));
+        .filter((name) => /gemini/i.test(name) && !/embedding|imagen|veo|tts|audio|robotics|aqa/i.test(name));
+
+      const verScore = (name) => {
+        const m = name.match(/gemini-(\d+(?:\.\d+)?)/i);
+        return m ? parseFloat(m[1]) : 0;
+      };
 
       models.sort((a, b) => {
         const aFlash = /flash/i.test(a) ? 0 : 1;
         const bFlash = /flash/i.test(b) ? 0 : 1;
-        return aFlash - bFlash;
+        if (aFlash !== bFlash) return aFlash - bFlash;
+        return verScore(b) - verScore(a);
       });
       return models;
     } catch {
@@ -797,15 +803,14 @@
     const cached = localStorage.getItem('speakflow30_gemini_model');
     const candidates = [...new Set([
       cached,
+      'gemini-3.8-flash',
+      'gemini-3.0-flash',
       'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest'
+      'gemini-2.5-flash-lite'
     ].filter(Boolean))];
 
     const tryModel = async (model) => {
-      const resp = await fetch(
+      return fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
         {
           method: 'POST',
@@ -816,7 +821,6 @@
           })
         }
       );
-      return resp;
     };
 
     let lastStatus = 0;
@@ -831,6 +835,9 @@
         return parseGeminiJSON(raw);
       }
       lastStatus = resp.status;
+      if (resp.status === 404 && model === cached) {
+        try { localStorage.removeItem('speakflow30_gemini_model'); } catch {}
+      }
       if (resp.status !== 404) {
         try {
           const errBody = await resp.json();
@@ -842,7 +849,7 @@
 
     // All hardcoded candidates returned 404 — discover available models for this key
     const discovered = await listAvailableGeminiModels(apiKey);
-    for (const model of discovered.slice(0, 3)) {
+    for (const model of discovered.slice(0, 4)) {
       const resp = await tryModel(model);
       if (resp.ok) {
         try { localStorage.setItem('speakflow30_gemini_model', model); } catch {}
