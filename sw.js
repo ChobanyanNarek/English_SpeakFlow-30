@@ -1,10 +1,10 @@
-const CACHE_NAME = 'speakflow30-v8';
+const CACHE_NAME = 'speakflow30-v9';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css',
-  './app.js',
-  './lessons.js',
+  './styles.css?v=9',
+  './app.js?v=9',
+  './lessons.js?v=9',
   './manifest.json',
   './icon.svg'
 ];
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();

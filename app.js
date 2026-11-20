@@ -1629,10 +1629,11 @@ CRITICAL RULES:
         return;
       } catch (err) {
         if (errEl) {
-          errEl.textContent = `${err.message} Loaded offline adaptive lesson instead.`;
+          errEl.textContent = `${err.message} (You can tap again to retry or clear the API key to use the offline engine.)`;
           errEl.classList.remove('hidden');
         }
-        var fallbackReason = err.message;
+        showLessonStatus('warn', `⚠ ${err.message}`);
+        return;
       } finally {
         if (btnEl) btnEl.disabled = false;
         if (labelEl) labelEl.textContent = 'Generate Next Auto-Lesson Now';
@@ -1648,11 +1649,7 @@ CRITICAL RULES:
     if ($('custom-topic-input')) $('custom-topic-input').value = '';
     loadLesson(lesson.id);
     $('modal-lessons').classList.add('hidden');
-    if (typeof fallbackReason === 'string' && fallbackReason) {
-      showLessonStatus('warn', `⚠ ${fallbackReason} Loaded offline lesson: "${lesson.title}"`);
-    } else {
-      showLessonStatus('info', `✓ Loaded adaptive lesson (Offline Engine): "${lesson.title}"`);
-    }
+    showLessonStatus('info', `✓ Loaded adaptive lesson (Offline Engine): "${lesson.title}"`);
   }
 
   $('btn-next-auto-lesson').addEventListener('click', () => {
