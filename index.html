@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./styles.css?v=9" />
+  <link rel="stylesheet" href="./styles.css?v=10" />
 </head>
 <body>
   <!-- Persistent Master Progress Line -->
@@ -81,13 +81,14 @@
   </header>
 
   <main class="app-main">
-    <!-- Lesson Generation Status Banner -->
-    <div id="lesson-source-banner" class="lesson-source-banner hidden" role="status" aria-live="polite">
-      <span id="lesson-source-text"></span>
-      <button id="btn-dismiss-source-banner" class="icon-btn" type="button" aria-label="Dismiss notice">
-        <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
+    <!-- Lesson Generation Status & Result Bar -->
+    <section id="lesson-source-banner" class="lesson-source-banner info" role="status" aria-live="polite">
+      <div class="lesson-source-left">
+        <span id="lesson-source-badge" class="source-badge">CURRICULUM</span>
+        <span id="lesson-source-text">Loading lesson...</span>
+      </div>
+      <button id="btn-quick-generate" class="btn btn-secondary btn-xs" type="button">Next Auto-Lesson →</button>
+    </section>
 
     <!-- Smart Warm-Up Banner (Day 2+ Spaced Repetition) -->
     <section id="blitz-banner" class="blitz-banner hidden" aria-label="Smart Warm-Up">
@@ -579,7 +580,7 @@
     </div>
   </div>
 
-  <script src="./lessons.js?v=9"></script>
-  <script src="./app.js?v=9"></script>
+  <script src="./lessons.js?v=10"></script>
+  <script src="./app.js?v=10"></script>
 </body>
 </html>

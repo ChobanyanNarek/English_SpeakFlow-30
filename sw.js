@@ -1,10 +1,10 @@
-const CACHE_NAME = 'speakflow30-v9';
+const CACHE_NAME = 'speakflow30-v10';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=9',
-  './app.js?v=9',
-  './lessons.js?v=9',
+  './styles.css?v=10',
+  './app.js?v=10',
+  './lessons.js?v=10',
   './manifest.json',
   './icon.svg'
 ];
