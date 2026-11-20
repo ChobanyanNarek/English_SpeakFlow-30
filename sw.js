@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakflow30-v6';
+const CACHE_NAME = 'speakflow30-v7';
 const ASSETS = [
   './',
   './index.html',

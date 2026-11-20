@@ -81,6 +81,14 @@
   </header>
 
   <main class="app-main">
+    <!-- Lesson Generation Status Banner -->
+    <div id="lesson-source-banner" class="lesson-source-banner hidden" role="status" aria-live="polite">
+      <span id="lesson-source-text"></span>
+      <button id="btn-dismiss-source-banner" class="icon-btn" type="button" aria-label="Dismiss notice">
+        <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
     <!-- Smart Warm-Up Banner (Day 2+ Spaced Repetition) -->
     <section id="blitz-banner" class="blitz-banner hidden" aria-label="Smart Warm-Up">
       <div class="blitz-banner-content">

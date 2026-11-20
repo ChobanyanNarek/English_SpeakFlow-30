@@ -1502,6 +1502,21 @@ Return ONLY valid JSON:
     return { lesson: newLesson, isNew: true };
   }
 
+  function showLessonStatus(type, message) {
+    const banner = $('lesson-source-banner');
+    const textEl = $('lesson-source-text');
+    if (!banner || !textEl) return;
+    banner.classList.remove('hidden', 'ok', 'warn', 'info');
+    banner.classList.add(type);
+    textEl.textContent = message;
+  }
+
+  if ($('btn-dismiss-source-banner')) {
+    $('btn-dismiss-source-banner').addEventListener('click', () => {
+      $('lesson-source-banner').classList.add('hidden');
+    });
+  }
+
   async function generateNextAutoLesson(btnEl, labelEl, errEl) {
     const { profile, level, nextPillar, nextIdx } = getAdaptiveProfile();
 
@@ -1596,12 +1611,15 @@ CRITICAL RULES:
         if ($('custom-topic-input')) $('custom-topic-input').value = '';
         loadLesson(parsed.id);
         $('modal-lessons').classList.add('hidden');
+        const usedModel = localStorage.getItem('speakflow30_gemini_model') || 'Gemini AI';
+        showLessonStatus('ok', `✓ Created new AI lesson with ${usedModel}: "${parsed.title}"`);
         return;
       } catch (err) {
         if (errEl) {
           errEl.textContent = `${err.message} Loaded offline adaptive lesson instead.`;
           errEl.classList.remove('hidden');
         }
+        var fallbackReason = err.message;
       } finally {
         if (btnEl) btnEl.disabled = false;
         if (labelEl) labelEl.textContent = 'Generate Next Auto-Lesson Now';
@@ -1617,6 +1635,11 @@ CRITICAL RULES:
     if ($('custom-topic-input')) $('custom-topic-input').value = '';
     loadLesson(lesson.id);
     $('modal-lessons').classList.add('hidden');
+    if (typeof fallbackReason === 'string' && fallbackReason) {
+      showLessonStatus('warn', `⚠ ${fallbackReason} Loaded offline lesson: "${lesson.title}"`);
+    } else {
+      showLessonStatus('info', `✓ Loaded adaptive lesson (Offline Engine): "${lesson.title}"`);
+    }
   }
 
   $('btn-next-auto-lesson').addEventListener('click', () => {
