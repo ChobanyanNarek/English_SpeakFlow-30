@@ -825,6 +825,7 @@
 
     let lastStatus = 0;
     let lastMessage = '';
+    const retryable = (status) => status === 404 || status === 429 || status >= 500;
 
     for (const model of candidates) {
       const resp = await tryModel(model);
@@ -838,18 +839,19 @@
       if (resp.status === 404 && model === cached) {
         try { localStorage.removeItem('speakflow30_gemini_model'); } catch {}
       }
-      if (resp.status !== 404) {
-        try {
-          const errBody = await resp.json();
-          lastMessage = errBody?.error?.message || '';
-        } catch {}
+      try {
+        const errBody = await resp.json();
+        lastMessage = errBody?.error?.message || '';
+      } catch {}
+      if (!retryable(resp.status)) {
         throw new Error(`Gemini API error (${resp.status}${lastMessage ? `: ${lastMessage}` : ''}).`);
       }
     }
 
-    // All hardcoded candidates returned 404 — discover available models for this key
+    // All hardcoded candidates failed (404 / 503 / 429) — try discovered models for this key
     const discovered = await listAvailableGeminiModels(apiKey);
     for (const model of discovered.slice(0, 4)) {
+      if (candidates.includes(model)) continue;
       const resp = await tryModel(model);
       if (resp.ok) {
         try { localStorage.setItem('speakflow30_gemini_model', model); } catch {}
@@ -858,9 +860,13 @@
         return parseGeminiJSON(raw);
       }
       lastStatus = resp.status;
+      try {
+        const errBody = await resp.json();
+        lastMessage = errBody?.error?.message || '';
+      } catch {}
     }
 
-    throw new Error(`Gemini API error (${lastStatus || 404}: no compatible model found for this API key).`);
+    throw new Error(`Gemini API error (${lastStatus || 503}${lastMessage ? `: ${lastMessage}` : ''}).`);
   }
 
   async function evaluateWithGemini(mode, payload) {
