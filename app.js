@@ -760,6 +760,102 @@
     };
   }
 
+  async function listAvailableGeminiModels(apiKey) {
+    try {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
+      );
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const models = (data.models || [])
+        .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+        .map((m) => m.name.replace(/^models\//, ''))
+        .filter((name) => !/embedding|imagen|veo|tts|audio|robotics/i.test(name));
+
+      models.sort((a, b) => {
+        const aFlash = /flash/i.test(a) ? 0 : 1;
+        const bFlash = /flash/i.test(b) ? 0 : 1;
+        return aFlash - bFlash;
+      });
+      return models;
+    } catch {
+      return [];
+    }
+  }
+
+  function parseGeminiJSON(rawText) {
+    if (!rawText) return null;
+    const cleaned = rawText
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    return JSON.parse(cleaned);
+  }
+
+  async function callGeminiJSON(apiKey, prompt, temperature = 0.7) {
+    const cached = localStorage.getItem('speakflow30_gemini_model');
+    const candidates = [...new Set([
+      cached,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest'
+    ].filter(Boolean))];
+
+    const tryModel = async (model) => {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature }
+          })
+        }
+      );
+      return resp;
+    };
+
+    let lastStatus = 0;
+    let lastMessage = '';
+
+    for (const model of candidates) {
+      const resp = await tryModel(model);
+      if (resp.ok) {
+        try { localStorage.setItem('speakflow30_gemini_model', model); } catch {}
+        const data = await resp.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        return parseGeminiJSON(raw);
+      }
+      lastStatus = resp.status;
+      if (resp.status !== 404) {
+        try {
+          const errBody = await resp.json();
+          lastMessage = errBody?.error?.message || '';
+        } catch {}
+        throw new Error(`Gemini API error (${resp.status}${lastMessage ? `: ${lastMessage}` : ''}).`);
+      }
+    }
+
+    // All hardcoded candidates returned 404 — discover available models for this key
+    const discovered = await listAvailableGeminiModels(apiKey);
+    for (const model of discovered.slice(0, 3)) {
+      const resp = await tryModel(model);
+      if (resp.ok) {
+        try { localStorage.setItem('speakflow30_gemini_model', model); } catch {}
+        const data = await resp.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        return parseGeminiJSON(raw);
+      }
+      lastStatus = resp.status;
+    }
+
+    throw new Error(`Gemini API error (${lastStatus || 404}: no compatible model found for this API key).`);
+  }
+
   async function evaluateWithGemini(mode, payload) {
     const apiKey = localStorage.getItem('speakflow30_gemini_key') || '';
     if (!apiKey) return null;
@@ -793,21 +889,7 @@ Return ONLY valid JSON:
 }`;
 
     try {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
-          })
-        }
-      );
-      if (!resp.ok) return null;
-      const data = await resp.json();
-      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      return raw ? JSON.parse(raw) : null;
+      return await callGeminiJSON(apiKey, prompt, 0.3);
     } catch {
       return null;
     }
@@ -1490,22 +1572,8 @@ CRITICAL RULES:
 }`;
 
       try {
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.9 }
-            })
-          }
-        );
-        if (!resp.ok) throw new Error(`Gemini API error (${resp.status}). Falling back to offline engine.`);
-        const data = await resp.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        const parsed = JSON.parse(rawText);
-        if (!parsed.title || !parsed.contextText || !Array.isArray(parsed.expressions)) {
+        const parsed = await callGeminiJSON(apiKey, prompt, 0.9);
+        if (!parsed || !parsed.title || !parsed.contextText || !Array.isArray(parsed.expressions)) {
           throw new Error('Incomplete AI JSON.');
         }
         parsed.id = `lesson-custom-ai-${Date.now()}`;
