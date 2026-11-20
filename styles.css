@@ -117,7 +117,7 @@ h1, h2, h3, h4 {
 /* Persistent Top Progress Bar */
 .master-progress-track {
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
   height: 3px;
@@ -134,13 +134,13 @@ h1, h2, h3, h4 {
 /* Sticky Header */
 .app-header {
   position: sticky;
-  top: 3px;
+  top: 0;
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) 10px calc(20px + env(safe-area-inset-left, 0px));
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-hairline);
   box-shadow: var(--shadow-sm);
@@ -1372,7 +1372,7 @@ h1, h2, h3, h4 {
 
 @media (max-width: 640px) {
   .app-header {
-    padding: 8px 12px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 8px calc(12px + env(safe-area-inset-left, 0px));
     flex-wrap: wrap;
   }
 
