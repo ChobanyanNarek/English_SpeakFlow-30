@@ -1636,22 +1636,19 @@ CRITICAL RULES:
         saveJSON(KEYS.CUSTOM_LESSONS, customLessons);
         if ($('custom-topic-input')) $('custom-topic-input').value = '';
         loadLesson(parsed.id);
+        showLessonStatus('ok', `Generation succeeded (${usedModel}): "${parsed.title}"`, 'SUCCEEDED');
         $('modal-lessons').classList.add('hidden');
         return;
       } catch (err) {
         if (errEl) {
-          errEl.textContent = `${err.message} (You can tap again to retry or clear the API key to use the offline engine.)`;
+          errEl.textContent = err.message;
           errEl.classList.remove('hidden');
         }
-        showLessonStatus('warn', err.message, 'AI ERROR');
+        showLessonStatus('warn', `Generation failed: ${err.message}`, 'FAILED');
         return;
       } finally {
         if (btnEl) btnEl.disabled = false;
-        if (labelEl) {
-          labelEl.textContent = labelEl.id === 'btn-quick-generate'
-            ? 'Next Auto-Lesson →'
-            : 'Generate Next Auto-Lesson Now';
-        }
+        if (labelEl) labelEl.textContent = 'Generate Next Auto-Lesson Now';
       }
     }
 
@@ -1664,13 +1661,8 @@ CRITICAL RULES:
     }
     if ($('custom-topic-input')) $('custom-topic-input').value = '';
     loadLesson(lesson.id);
+    showLessonStatus('ok', `Generation succeeded (Offline Engine): "${lesson.title}"`, 'SUCCEEDED');
     $('modal-lessons').classList.add('hidden');
-  }
-
-  if ($('btn-quick-generate')) {
-    $('btn-quick-generate').addEventListener('click', () => {
-      generateNextAutoLesson($('btn-quick-generate'), $('btn-quick-generate'), $('ai-gen-error'));
-    });
   }
 
   $('btn-next-auto-lesson').addEventListener('click', () => {
@@ -2060,8 +2052,14 @@ Return ONLY valid JSON.`;
   // Service Worker & Init
   // =========================================================================
   if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').then((reg) => reg.update().catch(() => {})).catch(() => {});
     });
   }
 

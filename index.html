@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./styles.css?v=10" />
+  <link rel="stylesheet" href="./styles.css?v=11" />
 </head>
 <body>
   <!-- Persistent Master Progress Line -->
@@ -81,13 +81,12 @@
   </header>
 
   <main class="app-main">
-    <!-- Lesson Generation Status & Result Bar -->
+    <!-- Generation Result Box -->
     <section id="lesson-source-banner" class="lesson-source-banner info" role="status" aria-live="polite">
       <div class="lesson-source-left">
-        <span id="lesson-source-badge" class="source-badge">CURRICULUM</span>
-        <span id="lesson-source-text">Loading lesson...</span>
+        <span id="lesson-source-badge" class="source-badge">READY</span>
+        <span id="lesson-source-text">No new lesson generated yet.</span>
       </div>
-      <button id="btn-quick-generate" class="btn btn-secondary btn-xs" type="button">Next Auto-Lesson →</button>
     </section>
 
     <!-- Smart Warm-Up Banner (Day 2+ Spaced Repetition) -->
@@ -580,7 +579,7 @@
     </div>
   </div>
 
-  <script src="./lessons.js?v=10"></script>
-  <script src="./app.js?v=10"></script>
+  <script src="./lessons.js?v=11"></script>
+  <script src="./app.js?v=11"></script>
 </body>
 </html>
