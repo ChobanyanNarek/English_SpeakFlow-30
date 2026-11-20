@@ -791,12 +791,25 @@
 
   function parseGeminiJSON(rawText) {
     if (!rawText) return null;
-    const cleaned = rawText
+    let cleaned = rawText
       .trim()
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
-    return JSON.parse(cleaned);
+
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      // Remove trailing commas before } or ] if the model emitted any
+      const noTrailingCommas = cleaned.replace(/,\s*([}\]])/g, '$1');
+      return JSON.parse(noTrailingCommas);
+    }
   }
 
   async function callGeminiJSON(apiKey, prompt, temperature = 0.7) {
@@ -1600,7 +1613,7 @@ CRITICAL RULES:
 }`;
 
       try {
-        const parsed = await callGeminiJSON(apiKey, prompt, 0.9);
+        const parsed = await callGeminiJSON(apiKey, prompt, 0.6);
         if (!parsed || !parsed.title || !parsed.contextText || !Array.isArray(parsed.expressions)) {
           throw new Error('Incomplete AI JSON.');
         }
