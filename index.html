@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>SpeakFlow 30 — Daily 30-Minute English Mastery</title>
-  <meta name="description" content="A distraction-free 30-minute daily English mastery engine combining Shadowing, Active Output, Roleplay, and Spaced Repetition." />
+  <title>SpeakFlow 30 — Daily 30-Minute English Fluency &amp; Mastery</title>
+  <meta name="description" content="A distraction-free 30-minute daily English fluency engine (A2 → C1) for everyday conversation, free speaking, grammar in context, career, and interviews." />
 
   <!-- PWA & Mobile Home Screen Tags -->
   <link rel="manifest" href="./manifest.json" />
@@ -118,7 +118,7 @@
       <button id="step-btn-3" class="step-item locked" type="button" data-stage="3" disabled>
         <span class="step-num">3</span>
         <span class="step-meta">
-          <span class="step-title">High-Stakes Roleplay</span>
+          <span class="step-title">Free Speaking &amp; Roleplay</span>
           <span class="step-time">20:00 – 30:00</span>
         </span>
         <svg class="step-lock icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -130,7 +130,7 @@
       <div class="stage-header">
         <div>
           <span class="stage-kicker">STAGE 1 · 10-MINUTE BLOCK</span>
-          <h1 id="stage1-lesson-title" class="stage-heading">Navigating Scope Creep Diplomatically</h1>
+          <h1 id="stage1-lesson-title" class="stage-heading">Loading lesson...</h1>
         </div>
         <div class="stage-timer-pill">
           <span class="timer-label">STAGE 1</span>
@@ -164,14 +164,35 @@
       </div>
 
       <div class="stage1-grid">
-        <!-- Reading / Shadowing Card -->
-        <article class="card reading-card">
-          <div class="card-header-row">
-            <span id="lesson-level-tag" class="tag">C1 Professional</span>
-            <span id="lesson-category-tag" class="muted-text">Product Strategy &amp; Pushback</span>
-          </div>
-          <p id="reading-passage" class="reading-passage"></p>
-        </article>
+        <!-- Left Column: Reading Passage + Grammar Tip + Quick Check -->
+        <div class="stage1-main-col">
+          <article class="card reading-card">
+            <div class="card-header-row">
+              <span id="lesson-level-tag" class="tag">B1 → B2</span>
+              <span id="lesson-category-tag" class="muted-text">General Fluency</span>
+            </div>
+            <p id="reading-passage" class="reading-passage"></p>
+          </article>
+
+          <!-- Grammar & Fluency Spotlight -->
+          <section id="grammar-tip-card" class="card grammar-tip-card hidden" aria-label="Grammar and Fluency Tip">
+            <div class="card-header-row">
+              <span class="stage-kicker">GRAMMAR &amp; FLUENCY SPOTLIGHT</span>
+            </div>
+            <h3 id="grammar-tip-title" class="grammar-tip-title"></h3>
+            <p id="grammar-tip-explanation" class="grammar-tip-text"></p>
+            <div id="grammar-tip-example" class="grammar-tip-example"></div>
+          </section>
+
+          <!-- Interactive Quick Check Quiz -->
+          <section id="quick-check-card" class="card quick-check-card hidden" aria-label="Quick Comprehension and Grammar Check">
+            <div class="card-header-row">
+              <span class="stage-kicker">QUICK CHECK · GRAMMAR &amp; USAGE</span>
+              <span id="quick-check-score" class="gate-count">0 / 2 Checked</span>
+            </div>
+            <div id="quick-check-list" class="quick-check-list"></div>
+          </section>
+        </div>
 
         <!-- Right Column: Interactive Vocabulary Inspector + Completion Gate -->
         <aside class="stage1-sidebar">
@@ -189,14 +210,14 @@
               </div>
             </div>
             <h2 id="inspector-phrase" class="inspector-phrase">Select a phrase</h2>
-            <p id="inspector-feynman" class="inspector-feynman">Click any highlighted expression in the passage to see its plain-English Feynman explanation and B1 vs. C1 contrast.</p>
+            <p id="inspector-feynman" class="inspector-feynman">Click any highlighted expression in the passage to see its plain-English explanation and natural usage.</p>
             <div id="inspector-examples" class="contrast-box hidden">
               <div class="contrast-row">
-                <span class="contrast-label b1">Basic B1</span>
+                <span class="contrast-label b1">Simple</span>
                 <span id="inspector-basic" class="contrast-text"></span>
               </div>
               <div class="contrast-row">
-                <span class="contrast-label c1">Pro C1</span>
+                <span class="contrast-label c1">Natural</span>
                 <span id="inspector-pro" class="contrast-text"></span>
               </div>
             </div>
@@ -223,7 +244,7 @@
         <div>
           <span class="stage-kicker">STAGE 2 · 10-MINUTE BLOCK</span>
           <h2 class="stage-heading">Deep Encoding &amp; Active Output</h2>
-          <p class="muted-text">Explain each phrase in plain English (Feynman), then anchor it to your own real work or life.</p>
+          <p class="muted-text">Explain each phrase in plain English (Feynman), then anchor it to your own real life or work.</p>
         </div>
         <div class="stage-timer-pill">
           <span class="timer-label">STAGE 2</span>
@@ -239,18 +260,18 @@
           <span class="muted-text">Fill in all 5 Personal Anchor sentences to unlock Stage 3.</span>
         </div>
         <button id="btn-unlock-stage3" class="btn btn-primary" type="button" disabled>
-          Unlock Stage 3: Roleplay
+          Unlock Stage 3: Free Speaking &amp; Roleplay
         </button>
       </div>
     </section>
 
-    <!-- STAGE 3: HIGH-STAKES ROLEPLAY & SYNTHESIS -->
+    <!-- STAGE 3: FREE SPEAKING & ROLEPLAY -->
     <section id="stage-3" class="stage-panel hidden">
       <div class="stage-header">
         <div>
           <span class="stage-kicker">STAGE 3 · 10-MINUTE BLOCK</span>
-          <h2 class="stage-heading">High-Stakes Roleplay &amp; Synthesis</h2>
-          <p class="muted-text">Respond naturally under time pressure without translating. Aim for at least 3 target expressions.</p>
+          <h2 class="stage-heading">Free Speaking &amp; Roleplay</h2>
+          <p class="muted-text">Speak or write naturally without translating. Aim for at least 3 target expressions and clear, connected sentences.</p>
         </div>
         <div class="stage-timer-pill">
           <span class="timer-label">STAGE 3</span>
@@ -370,8 +391,8 @@
               <span class="stat-label">Current Level</span>
             </div>
             <div class="stat-box">
-              <span class="stat-value" id="profile-next-pillar">Everyday</span>
-              <span class="stat-label">Next Pillar</span>
+              <span class="stat-value" id="profile-next-pillar" style="font-size: 1.05rem;">Everyday</span>
+              <span class="stat-label">Next Topic</span>
             </div>
             <div class="stat-box">
               <span class="stat-value" id="profile-weak-count">0</span>
@@ -380,16 +401,44 @@
           </div>
 
           <p class="muted-text" style="margin-bottom: 12px;">
-            Lessons are <strong>automatically created for you</strong>—rotating across <strong>Everyday Life</strong>, <strong>Career</strong>, and <strong>Interviews</strong>, adapting from <strong>B1 → B2 → C1</strong> based on your progress and Hard Mode phrases.
+            Grow your overall English fluency (<strong>A2 → B1 → B2 → C1</strong>) — rotating across <strong>Everyday Life</strong>, <strong>Free Speaking</strong>, <strong>Culture</strong>, <strong>Grammar</strong>, <strong>Career</strong>, and <strong>Interviews</strong>.
           </p>
 
           <div class="field-group" style="margin-bottom: 12px;">
-            <label class="field-label" for="endless-role-input">Your Profession / Field (Optional — won't limit everyday topics)</label>
-            <input id="endless-role-input" class="text-input" type="text" placeholder="e.g., Software Engineer, Designer, Marketing, Product Manager..." />
+            <label class="field-label" for="profile-level-select">Your English Level</label>
+            <select id="profile-level-select" class="text-input select-input">
+              <option value="auto">Auto-Adapt (grows with completed sessions)</option>
+              <option value="A2">A2 — Elementary / Foundation</option>
+              <option value="B1">B1 — Intermediate (Everyday Fluency)</option>
+              <option value="B2">B2 — Upper-Intermediate (Speak Freely &amp; Interviews)</option>
+              <option value="C1">C1 — Advanced (Nuance, Debates &amp; Executive)</option>
+            </select>
+          </div>
+
+          <div class="field-group" style="margin-bottom: 12px;">
+            <span class="field-label">Focus Topics in Auto-Plan (toggle any)</span>
+            <div id="pillar-selector" class="pillar-selector" role="group" aria-label="Auto-Plan focus topics">
+              <button type="button" class="pillar-chip active" data-pillar="everyday">Everyday Life</button>
+              <button type="button" class="pillar-chip active" data-pillar="speaking">Free Speaking</button>
+              <button type="button" class="pillar-chip active" data-pillar="culture">Culture &amp; World</button>
+              <button type="button" class="pillar-chip active" data-pillar="grammar">Grammar in Action</button>
+              <button type="button" class="pillar-chip active" data-pillar="career">Career &amp; Work</button>
+              <button type="button" class="pillar-chip active" data-pillar="interview">Job Interviews</button>
+            </div>
+          </div>
+
+          <div class="field-group" style="margin-bottom: 12px;">
+            <label class="field-label" for="custom-topic-input">Custom Topic for Next Lesson (Optional)</label>
+            <input id="custom-topic-input" class="text-input" type="text" placeholder="e.g., Movies &amp; Books, Travel in Europe, Ordering Food, Tech Interview..." />
+          </div>
+
+          <div class="field-group" style="margin-bottom: 12px;">
+            <label class="field-label" for="endless-role-input">Your Profession / Field (Optional — only used for Career &amp; Interviews)</label>
+            <input id="endless-role-input" class="text-input" type="text" placeholder="e.g., Software Engineer, Designer, Marketing, Student..." />
           </div>
 
           <div class="field-group" style="margin-bottom: 14px;">
-            <label class="field-label" for="gemini-api-key">Gemini API Key (Optional — for unlimited AI-written daily lessons)</label>
+            <label class="field-label" for="gemini-api-key">Gemini API Key (Optional — for unlimited AI lessons &amp; AI Coach)</label>
             <input id="gemini-api-key" class="text-input" type="password" placeholder="Paste Gemini API Key (AIza...) or leave empty for built-in Auto Engine" autocomplete="off" />
           </div>
 
@@ -403,7 +452,10 @@
       <div id="panel-lessons-browse" class="modal-body hidden">
         <div class="vault-filters" style="margin-bottom: 12px;">
           <button class="track-filter-btn filter-btn active" data-track="all" type="button">All</button>
-          <button class="track-filter-btn filter-btn" data-track="everyday" type="button">Everyday (B1→B2)</button>
+          <button class="track-filter-btn filter-btn" data-track="everyday" type="button">Everyday</button>
+          <button class="track-filter-btn filter-btn" data-track="speaking" type="button">Free Speaking</button>
+          <button class="track-filter-btn filter-btn" data-track="culture" type="button">Culture</button>
+          <button class="track-filter-btn filter-btn" data-track="grammar" type="button">Grammar</button>
           <button class="track-filter-btn filter-btn" data-track="career" type="button">Career</button>
           <button class="track-filter-btn filter-btn" data-track="interview" type="button">Interviews</button>
           <button class="track-filter-btn filter-btn" data-track="custom" type="button">Auto / Custom</button>

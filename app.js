@@ -82,6 +82,7 @@
     // Stage 1
     selectedPhraseIndex: 0,
     shadowedChecked: [],
+    quickCheckAnswers: [],
 
     // Stage 2
     anchors: [], // [{ feynmanCheck, personalAnchor, difficulty: 'easy'|'hard' }]
@@ -338,6 +339,7 @@
     state.stageSecondsLeft = { 1: 10 * 60, 2: 10 * 60, 3: 10 * 60 };
     state.selectedPhraseIndex = 0;
     state.shadowedChecked = found.expressions.map(() => false);
+    state.quickCheckAnswers = (found.quickCheck || []).map(() => null);
     state.anchors = found.expressions.map(() => ({
       feynmanCheck: '',
       personalAnchor: '',
@@ -349,17 +351,90 @@
 
     $('header-lesson-title').textContent = found.title;
     $('stage1-lesson-title').textContent = found.title;
-    $('lesson-level-tag').textContent = found.level || 'C1 Professional';
-    $('lesson-category-tag').textContent = found.category || 'Daily Mastery';
+    $('lesson-level-tag').textContent = found.level || 'B1 → C1';
+    $('lesson-category-tag').textContent = found.category || 'Daily Fluency';
     $('roleplay-prompt').textContent = found.roleplayPrompt;
     $('roleplay-textarea').value = '';
     $('roleplay-word-count').textContent = '0 words';
+    if ($('roleplay-feedback-panel')) $('roleplay-feedback-panel').classList.add('hidden');
+    if ($('shadow-mic-feedback')) $('shadow-mic-feedback').classList.add('hidden');
 
     renderStage1();
+    renderGrammarAndQuickCheck();
     renderStage2();
     renderStage3Tracker();
     updateTimerUI();
     goToStage(1);
+  }
+
+  function renderGrammarAndQuickCheck() {
+    const tipCard = $('grammar-tip-card');
+    const tip = state.lesson.grammarTip;
+    if (tipCard) {
+      if (tip && tip.title) {
+        tipCard.classList.remove('hidden');
+        $('grammar-tip-title').textContent = tip.title;
+        $('grammar-tip-explanation').textContent = tip.explanation || '';
+        $('grammar-tip-example').textContent = tip.example ? `Example: ${tip.example}` : '';
+        $('grammar-tip-example').classList.toggle('hidden', !tip.example);
+      } else {
+        tipCard.classList.add('hidden');
+      }
+    }
+
+    const qcCard = $('quick-check-card');
+    const qcList = $('quick-check-list');
+    const questions = Array.isArray(state.lesson.quickCheck) ? state.lesson.quickCheck : [];
+    if (!qcCard || !qcList) return;
+
+    if (questions.length === 0) {
+      qcCard.classList.add('hidden');
+      return;
+    }
+
+    qcCard.classList.remove('hidden');
+    qcList.innerHTML = '';
+
+    questions.forEach((q, qIdx) => {
+      const answered = state.quickCheckAnswers[qIdx];
+      const item = document.createElement('div');
+      item.className = 'qc-item';
+
+      const optionsHtml = q.options.map((opt, oIdx) => {
+        let cls = 'qc-option-btn';
+        if (answered !== null) {
+          if (oIdx === q.correctIndex) cls += ' correct';
+          else if (oIdx === answered) cls += ' wrong';
+        }
+        return `<button type="button" class="${cls}" data-q="${qIdx}" data-o="${oIdx}" ${answered !== null ? 'disabled' : ''}>${escapeHTML(opt)}</button>`;
+      }).join('');
+
+      const expHtml = answered !== null
+        ? `<p class="qc-explanation"><strong>${answered === q.correctIndex ? '✓ Correct!' : '✎ Note:'}</strong> ${escapeHTML(q.explanation || '')}</p>`
+        : '';
+
+      item.innerHTML = `
+        <p class="qc-question">${qIdx + 1}. ${escapeHTML(q.question)}</p>
+        <div class="qc-options">${optionsHtml}</div>
+        ${expHtml}
+      `;
+
+      item.querySelectorAll('.qc-option-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          ensureTimerStarted();
+          state.quickCheckAnswers[qIdx] = Number(btn.dataset.o);
+          renderGrammarAndQuickCheck();
+        });
+      });
+
+      qcList.appendChild(item);
+    });
+
+    const answeredCount = state.quickCheckAnswers.filter((a) => a !== null).length;
+    const correctCount = state.quickCheckAnswers.filter((a, i) => a === questions[i]?.correctIndex).length;
+    $('quick-check-score').textContent = answeredCount === 0
+      ? `0 / ${questions.length} Checked`
+      : `${correctCount} / ${questions.length} Correct`;
   }
 
   function renderStage1() {
@@ -616,15 +691,18 @@
   }
 
   // =========================================================================
-  // Comprehensive Checking Engine (Local B1->B2 Rules + Optional Gemini AI Coach)
+  // Comprehensive Checking Engine (Local A2->C1 Rules + Optional Gemini AI Coach)
   // =========================================================================
   function evaluateLocalText(text, requiredPhrases = [], minWords = 5) {
     const trimmed = text.trim();
     const issues = [];
     const words = trimmed ? trimmed.split(/\s+/) : [];
+    const sentences = trimmed
+      ? trimmed.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean)
+      : [];
 
     if (words.length < minWords) {
-      issues.push(`Too short (${words.length} words). Write at least ${minWords} words for a complete thought.`);
+      issues.push(`Too short (${words.length} words). Aim for at least ${minWords} words for a complete thought.`);
     }
 
     if (trimmed && /^[a-z]/.test(trimmed)) {
@@ -639,15 +717,26 @@
       issues.push('Always capitalize the pronoun "I".');
     }
 
-    // Common B1 -> B2 grammar & collocation traps
+    // Common A2 -> C1 grammar, preposition & collocation traps
     const traps = [
       { re: /\b(i am|i'm|am)\s+agree\b/i, msg: 'Use "I agree" (never "I am agree").' },
       { re: /\bdiscuss\s+about\b/i, msg: 'Use "discuss [topic]" without "about".' },
       { re: /\bexplain\s+me\b/i, msg: 'Use "explain to me" (not "explain me").' },
       { re: /\bdepend\s+of\b/i, msg: 'Use "depend on" (not "depend of").' },
-      { re: /\bmore\s+(better|easier|faster|harder|cheaper)\b/i, msg: 'Avoid double comparatives (use "much better" / "easier").' },
-      { re: /\b(informations|advices|equipments)\b/i, msg: '"Information", "advice", and "equipment" are uncountable (no "-s").' },
-      { re: /\b(return back|repeat again)\b/i, msg: 'Avoid redundancy ("return" or "repeat" is enough).' },
+      { re: /\bmore\s+(better|easier|faster|harder|cheaper|bigger|smaller)\b/i, msg: 'Avoid double comparatives (use "much better" / "easier").' },
+      { re: /\b(informations|advices|equipments|knowledges|researches)\b/i, msg: '"Information", "advice", "equipment", "knowledge", and "research" are uncountable (no "-s").' },
+      { re: /\b(return back|repeat again|revert back)\b/i, msg: 'Avoid redundancy ("return" or "repeat" is enough).' },
+      { re: /\b(did|didn't|did not)\s+(went|saw|came|made|took|told|gave|knew|wrote|spoke|felt|bought)\b/i, msg: 'After "did / didn\'t", always use the base verb (e.g., "didn\'t go", not "didn\'t went").' },
+      { re: /\b(can|could|should|must|might)\s+to\s+[a-z]+\b/i, msg: 'Modal verbs (can, should, must, might) take a bare verb with no "to" (e.g., "should go").' },
+      { re: /\bwould\s+rather\s+to\b/i, msg: 'Use "would rather + base verb" without "to" (e.g., "would rather stay").' },
+      { re: /\b(do|did|doing)\s+a\s+mistake\b/i, msg: 'Use "make a mistake" (not "do a mistake").' },
+      { re: /\bpeople\s+is\b/i, msg: '"People" is plural — use "people are" (not "people is").' },
+      { re: /\b(everyone|everybody|someone|somebody)\s+are\b/i, msg: '"Everyone / somebody" takes a singular verb (e.g., "everyone is").' },
+      { re: /\bsince\s+\d+\s+(years|months|weeks|days|hours)\b/i, msg: 'Use "for" with durations ("for 3 years") and "since" with a start date ("since 2023").' },
+      { re: /\beven\s+though\b[^.!?]*\bbut\b/i, msg: 'Do not use both "even though" and "but" in the same sentence.' },
+      { re: /\bworth\s+to\s+[a-z]+\b/i, msg: 'Use "worth + -ing" (e.g., "worth visiting", not "worth to visit").' },
+      { re: /\blooking\s+forward\s+to\s+(meet|see|work|hear|go|visit|talk|join)\b/i, msg: 'Use "looking forward to + -ing" (e.g., "looking forward to meeting").' },
+      { re: /\b(get|got|am|is|are)\s+used\s+to\s+(wake|drive|speak|work|live|go|study|read)\b/i, msg: 'Use "be/get used to + -ing" (e.g., "got used to speaking").' },
       { re: /\b(\w+)\s+\1\b/i, msg: 'Repeated word detected — check for typos.' }
     ];
 
@@ -659,7 +748,16 @@
       (p) => !trimmed.toLowerCase().includes(p.toLowerCase())
     );
 
-    return { issues, missing, wordCount: words.length };
+    const sentenceCount = sentences.length || (words.length > 0 ? 1 : 0);
+    const estimatedSpeakSec = Math.max(1, Math.round((words.length / 130) * 60));
+
+    return {
+      issues,
+      missing,
+      wordCount: words.length,
+      sentenceCount,
+      estimatedSpeakSec
+    };
   }
 
   async function evaluateWithGemini(mode, payload) {
@@ -668,7 +766,7 @@
 
     const { level } = getAdaptiveProfile();
     const prompt = mode === 'anchor'
-      ? `You are an encouraging English coach for a ${level} learner.
+      ? `You are an encouraging English coach for a ${level} learner working on overall fluency and speaking confidence.
 Target phrase: "${payload.phrase}" (Meaning: ${payload.feynmanExplanation})
 Learner's Feynman explanation: "${payload.feynmanCheck || '(empty)'}"
 Learner's Personal sentence: "${payload.personalAnchor}"
@@ -678,14 +776,14 @@ Return ONLY valid JSON:
 {
   "isCorrect": true or false,
   "feedback": "1-2 short, clear sentences explaining what is good or what to fix.",
-  "upgradedVersion": "A natural, polished B2/C1 version of their Personal sentence."
+  "upgradedVersion": "A natural, polished ${level}→C1 version of their Personal sentence."
 }`
-      : `You are an encouraging English coach for a ${level} learner.
+      : `You are an encouraging English coach for a ${level} learner developing free speaking, general English fluency, and interview confidence.
 Scenario: ${payload.prompt}
 Target expressions: ${payload.phrases.join(', ')}
 Learner's response (written or spoken): "${payload.text}"
 
-Check grammar, clarity, tone, and usage of the target expressions.
+Check grammar, clarity, natural flow, tone, and usage of the target expressions.
 Return ONLY valid JSON:
 {
   "score": "e.g. 8/10",
@@ -767,7 +865,7 @@ Return ONLY valid JSON:
     fb.classList.remove('hidden', 'ok', 'warn', 'error');
     if (!text) {
       fb.classList.add('error');
-      fb.textContent = 'Type or speak your roleplay response first so I can check it.';
+      fb.textContent = 'Type or speak your response first so I can check it.';
       return;
     }
 
@@ -775,8 +873,20 @@ Return ONLY valid JSON:
     const usedCount = phrases.length - local.missing.length;
     const allIssues = [...local.issues];
     if (usedCount < 3) {
-      allIssues.unshift(`You used ${usedCount}/5 target expressions (goal: at least 3). Try adding: ${local.missing.slice(0, 2).join(', ')}.`);
+      allIssues.unshift(`You used ${usedCount}/${phrases.length} target expressions (goal: at least 3). Try adding: ${local.missing.slice(0, 2).join(', ')}.`);
     }
+    if (local.sentenceCount < 3) {
+      allIssues.push(`Only ${local.sentenceCount} sentence${local.sentenceCount === 1 ? '' : 's'} detected — try expanding into 4–5 connected sentences.`);
+    }
+
+    const metricsHtml = `
+      <div class="fluency-metrics">
+        <span class="metric-pill">${local.wordCount} words</span>
+        <span class="metric-pill">${local.sentenceCount} sentences</span>
+        <span class="metric-pill">${usedCount}/${phrases.length} phrases</span>
+        <span class="metric-pill">~${local.estimatedSpeakSec}s spoken</span>
+      </div>
+    `;
 
     btn.disabled = true;
     btn.textContent = 'Checking...';
@@ -792,15 +902,16 @@ Return ONLY valid JSON:
       fb.classList.add(ai.isCorrect && usedCount >= 3 ? 'ok' : 'warn');
       fb.innerHTML = `
         <strong>AI Coach (${escapeHTML(ai.score || 'Reviewed')}):</strong> ${escapeHTML(ai.feedback)}
+        ${metricsHtml}
         ${allIssues.length ? `<div style="margin-top:6px;">• ${allIssues.map(escapeHTML).join('<br>• ')}</div>` : ''}
         ${ai.upgradedVersion ? `<div class="feedback-upgrade"><span class="contrast-label c1">Polished B2/C1 Version</span><div style="margin-top:4px;">${escapeHTML(ai.upgradedVersion)}</div></div>` : ''}
       `;
     } else if (allIssues.length === 0) {
       fb.classList.add('ok');
-      fb.innerHTML = `<strong>✓ Great response!</strong> You used ${usedCount}/5 target expressions (${local.wordCount} words) with clean structure. (Add a Gemini API key in Auto-Plan for line-by-line AI grammar upgrades.)`;
+      fb.innerHTML = `<strong>✓ Great response!</strong> Clean structure and strong use of today's expressions.${metricsHtml}<div class="muted-text" style="margin-top:4px;">Tip: Add an optional Gemini API key in Auto-Plan for line-by-line AI grammar upgrades.</div>`;
     } else {
       fb.classList.add('warn');
-      fb.innerHTML = `<strong>✎ Review Feedback (${usedCount}/5 phrases used):</strong><br>• ${allIssues.map(escapeHTML).join('<br>• ')}`;
+      fb.innerHTML = `<strong>✎ Review Feedback:</strong>${metricsHtml}<div>• ${allIssues.map(escapeHTML).join('<br>• ')}</div>`;
     }
   }
 
@@ -1084,41 +1195,65 @@ Return ONLY valid JSON:
   });
 
   // =========================================================================
-  // Automatic Adaptive Curriculum Engine (B1 -> B2 -> C1)
-  // Rotates Everyday Life <-> Career <-> Interview automatically
+  // Automatic Adaptive Curriculum Engine (A2 -> B1 -> B2 -> C1)
+  // Balances Everyday Life, Free Speaking, Culture, Grammar, Career & Interviews
   // =========================================================================
-  const PILLARS = ['everyday', 'career', 'interview'];
+  const PILLARS = ['everyday', 'speaking', 'culture', 'grammar', 'career', 'interview'];
   const PILLAR_LABELS = {
     everyday: 'Everyday Life',
+    speaking: 'Free Speaking',
+    culture: 'Culture & World',
+    grammar: 'Grammar in Action',
     career: 'Career & Work',
-    interview: 'Job Interview'
+    interview: 'Job Interviews'
   };
 
-  function getAdaptiveProfile() {
-    const profile = loadJSON('speakflow30_profile', {
-      profession: '',
-      lastPillarIndex: -1,
-      completedLessonIds: []
-    });
-    const sessions = historyDates.length;
-    let level = 'B1';
-    if (sessions >= 25) level = 'C1';
-    else if (sessions >= 16) level = 'B2+';
-    else if (sessions >= 9) level = 'B2';
-    else if (sessions >= 4) level = 'B1+';
+  function loadProfile() {
+    const raw = loadJSON('speakflow30_profile', {});
+    const enabled = Array.isArray(raw.enabledPillars)
+      ? raw.enabledPillars.filter((p) => PILLARS.includes(p))
+      : [];
+    return {
+      profession: raw.profession || '',
+      selectedLevel: raw.selectedLevel || 'auto',
+      enabledPillars: enabled.length > 0 ? enabled : [...PILLARS],
+      lastPillarIndex: typeof raw.lastPillarIndex === 'number' ? raw.lastPillarIndex : -1,
+      completedLessonIds: Array.isArray(raw.completedLessonIds) ? raw.completedLessonIds : []
+    };
+  }
 
-    const nextIdx = (profile.lastPillarIndex + 1) % PILLARS.length;
-    const nextPillar = PILLARS[nextIdx];
+  function getAdaptiveProfile() {
+    const profile = loadProfile();
+    const sessions = historyDates.length;
+
+    let level = profile.selectedLevel;
+    if (!level || level === 'auto') {
+      level = 'B1';
+      if (sessions >= 25) level = 'C1';
+      else if (sessions >= 16) level = 'B2+';
+      else if (sessions >= 9) level = 'B2';
+      else if (sessions >= 4) level = 'B1+';
+    }
+
+    const activePillars = profile.enabledPillars.length > 0 ? profile.enabledPillars : PILLARS;
+    const nextIdx = (profile.lastPillarIndex + 1) % activePillars.length;
+    const nextPillar = activePillars[nextIdx];
     const weakCount = vault.filter((v) => v.difficulty === 'hard').length;
 
-    return { profile, level, nextPillar, nextIdx, weakCount };
+    return { profile, level, activePillars, nextPillar, nextIdx, weakCount };
   }
 
   function updateProfileUI() {
     const { profile, level, nextPillar, weakCount } = getAdaptiveProfile();
     if ($('profile-level-badge')) $('profile-level-badge').textContent = level;
-    if ($('profile-next-pillar')) $('profile-next-pillar').textContent = PILLAR_LABELS[nextPillar];
+    if ($('profile-next-pillar')) $('profile-next-pillar').textContent = PILLAR_LABELS[nextPillar] || 'Everyday';
     if ($('profile-weak-count')) $('profile-weak-count').textContent = String(weakCount);
+    if ($('profile-level-select')) $('profile-level-select').value = profile.selectedLevel || 'auto';
+
+    document.querySelectorAll('.pillar-chip').forEach((chip) => {
+      chip.classList.toggle('active', profile.enabledPillars.includes(chip.dataset.pillar));
+    });
+
     if ($('endless-role-input') && profile.profession && !$('endless-role-input').value) {
       $('endless-role-input').value = profile.profession;
     }
@@ -1128,14 +1263,45 @@ Return ONLY valid JSON:
     }
   }
 
-  function buildOfflineAutoLesson(pillar, level, profession) {
-    // 1. Check if there is an uncompleted built-in lesson for this pillar
-    const completedSet = new Set(vault.map((v) => v.id.split('::')[0]));
-    const uncompletedBuiltIn = builtInLessons.find(
-      (l) => l.track === pillar && !completedSet.has(l.id)
-    );
-    if (uncompletedBuiltIn) {
-      return { lesson: uncompletedBuiltIn, isNew: false };
+  if ($('profile-level-select')) {
+    $('profile-level-select').addEventListener('change', (e) => {
+      const profile = loadProfile();
+      profile.selectedLevel = e.target.value;
+      saveJSON('speakflow30_profile', profile);
+      updateProfileUI();
+    });
+  }
+
+  document.querySelectorAll('.pillar-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const profile = loadProfile();
+      const pillar = chip.dataset.pillar;
+      const exists = profile.enabledPillars.includes(pillar);
+      if (exists && profile.enabledPillars.length <= 1) {
+        return; // Always keep at least one active topic
+      }
+      profile.enabledPillars = exists
+        ? profile.enabledPillars.filter((p) => p !== pillar)
+        : PILLARS.filter((p) => p === pillar || profile.enabledPillars.includes(p));
+      profile.lastPillarIndex = -1;
+      saveJSON('speakflow30_profile', profile);
+      updateProfileUI();
+    });
+  });
+
+  function buildOfflineAutoLesson(pillar, level, profession, customTopic = '') {
+    // 1. If no custom topic, check for an uncompleted built-in lesson in this pillar
+    if (!customTopic) {
+      const completedSet = new Set(vault.map((v) => v.id.split('::')[0]));
+      const uncompletedBuiltIn = builtInLessons.filter(
+        (l) => l.track === pillar && !completedSet.has(l.id)
+      );
+      if (uncompletedBuiltIn.length > 0) {
+        const levelMatch = uncompletedBuiltIn.find((l) =>
+          String(l.level || '').toUpperCase().includes(level.replace('+', '').toUpperCase())
+        );
+        return { lesson: levelMatch || uncompletedBuiltIn[0], isNew: false };
+      }
     }
 
     // 2. Otherwise, synthesize a brand-new adaptive lesson from the Expression Bank
@@ -1145,13 +1311,20 @@ Return ONLY valid JSON:
     ).flat();
     const pool = [...bank, ...fromBuiltIn];
 
+    const baseLevel = level.replace('+', '');
+    const topicWords = customTopic.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
     const vaultedMap = new Map(vault.map((v) => [v.phrase.toLowerCase(), v]));
     const scored = pool.map((expr) => {
       const v = vaultedMap.get(expr.phrase.toLowerCase());
       let priority = 0;
       if (!v) priority += 4; // Never learned
       else if (v.difficulty === 'hard') priority += 3; // Needs reinforcement
-      if (expr.pillar === pillar) priority += 2; // Matches today's pillar
+      if (expr.pillar === pillar) priority += 2.5; // Matches today's pillar
+      if (expr.minLevel === baseLevel) priority += 1.2; // Matches learner's level
+      if (topicWords.length > 0) {
+        const hay = `${expr.phrase} ${expr.feynmanExplanation} ${expr.proExample}`.toLowerCase();
+        if (topicWords.some((w) => hay.includes(w))) priority += 3.5;
+      }
       return { expr, score: priority + Math.random() * 0.9 };
     });
 
@@ -1167,33 +1340,68 @@ Return ONLY valid JSON:
       if (picked.length === 5) break;
     }
 
-    const roleHint = profession && pillar !== 'everyday' ? ` (${profession})` : '';
+    const roleHint = profession && (pillar === 'career' || pillar === 'interview') ? ` (${profession})` : '';
+    const topicLabel = customTopic || PILLAR_LABELS[pillar] || 'General Fluency';
+
     const introByPillar = {
-      everyday: `In everyday conversations with friends, neighbors, or while traveling, natural phrasing makes you feel relaxed and confident. `,
+      everyday: `In everyday conversations with friends, neighbors, or while traveling, natural phrasing helps you relax and speak freely. `,
+      speaking: `Speaking English freely means connecting ideas smoothly and sharing stories without pausing to translate word by word. `,
+      culture: `Talking about travel, modern life, habits, and culture gives you rich real-world English you can use anywhere. `,
+      grammar: `Real grammar mastery happens when natural structures flow automatically inside spoken sentences instead of staying on paper. `,
       career: `In daily workplace communication${roleHint}, expressing your ideas clearly helps you collaborate smoothly and earn trust. `,
       interview: `During English job interviews${roleHint}, speaking naturally and structuring your thoughts clearly sets you apart. `
     };
     const outroByPillar = {
       everyday: ` Practicing these five everyday expressions will help you sound natural beyond textbook English.`,
+      speaking: ` Rehearsing these five expressions aloud will make your spontaneous English much smoother.`,
+      culture: ` Using these five expressions helps you share opinions and stories about the world around you.`,
+      grammar: ` Anchoring these five patterns into your own examples builds lasting ${level} accuracy.`,
       career: ` Using these five phrases in meetings and updates will steadily elevate your English from ${level} toward fluency.`,
       interview: ` Mastering these five expressions will help you present your experience with calm confidence.`
     };
     const roleplayByPillar = {
-      everyday: `Everyday Scenario: A friend or neighbor asks you about your week and invites you to join a weekend plan, but you need to explain your situation naturally. Reply in 4–5 sentences using at least 3 of today's expressions.`,
+      everyday: `Everyday Scenario: A friend invites you to join a weekend plan and asks how your week has been. Reply naturally in 4–5 sentences using at least 3 of today's expressions.`,
+      speaking: `Free Speaking Challenge: Share a real story or opinion on "${topicLabel}" as if talking on a podcast or to a friend. Speak or write 4–5 connected sentences using at least 3 of today's expressions.`,
+      culture: `Culture & Lifestyle Discussion: Someone asks for your thoughts or experience related to "${topicLabel}". Give an engaging 4–5 sentence response using at least 3 of today's expressions.`,
+      grammar: `Grammar in Action: Talk about how your habits, decisions, or goals have changed recently in 4–5 natural sentences using at least 3 of today's expressions.`,
       career: `Career Scenario${roleHint}: A teammate asks for an update on a tricky task with a tight deadline. Write or speak a clear 4–5 sentence update using at least 3 of today's expressions.`,
       interview: `Interview Scenario${roleHint}: The interviewer asks how you handle pressure, ambiguity, or collaboration. Give a confident 4–5 sentence answer using at least 3 of today's expressions.`
     };
 
+    // Build 2 automatic quick-check questions from the picked phrases
+    const quickCheck = picked.slice(0, 2).map((target, qIdx) => {
+      const distractors = picked.filter((_, i) => i !== qIdx).slice(0, 2);
+      const options = [target.phrase, ...distractors.map((d) => d.phrase)];
+      const correctIdx = qIdx % options.length;
+      if (correctIdx !== 0) {
+        [options[0], options[correctIdx]] = [options[correctIdx], options[0]];
+      }
+      return {
+        question: `Which expression best matches: "${target.feynmanExplanation}"`,
+        options,
+        correctIndex: correctIdx,
+        explanation: `"${target.phrase}" means: ${target.feynmanExplanation}`
+      };
+    });
+
     const sessionNum = historyDates.length + customLessons.length + 1;
     const newLesson = {
       id: `endless-auto-${Date.now()}`,
-      title: `Day ${sessionNum}: ${PILLAR_LABELS[pillar]}${roleHint}`,
-      category: `Auto-Plan · ${PILLAR_LABELS[pillar]}`,
+      title: customTopic ? `${customTopic} (${level} Fluency)` : `Day ${sessionNum}: ${PILLAR_LABELS[pillar]}${roleHint}`,
+      category: customTopic ? `Custom Topic · ${PILLAR_LABELS[pillar]}` : `Auto-Plan · ${PILLAR_LABELS[pillar]}`,
       track: 'custom',
       level: `${level} Adaptive`,
-      contextText: `${introByPillar[pillar]}${picked.map((e) => e.proExample).join(' ')}${outroByPillar[pillar]}`,
+      contextText: `${customTopic ? `Let's practice speaking naturally about ${customTopic}. ` : introByPillar[pillar]}${picked.map((e) => e.proExample).join(' ')}${outroByPillar[pillar]}`,
       expressions: picked,
-      roleplayPrompt: roleplayByPillar[pillar]
+      grammarTip: {
+        title: `${level} Fluency Focus: Natural Chunks Over Single Words`,
+        explanation: `Focus on saying each highlighted phrase as one smooth rhythmic unit instead of pausing between words. Connect your sentences with bridges like "actually", "on the other hand", or "looking back".`,
+        example: picked[0]?.proExample || ''
+      },
+      quickCheck,
+      roleplayPrompt: customTopic
+        ? `Free Speaking & Roleplay (${customTopic}): Give a natural 4–5 sentence spoken or written response about "${customTopic}" using at least 3 of today's expressions.`
+        : roleplayByPillar[pillar]
     };
 
     return { lesson: newLesson, isNew: true };
@@ -1206,54 +1414,79 @@ Return ONLY valid JSON:
     if (profInput) profile.profession = profInput;
     const profession = profile.profession || '';
 
+    const customTopic = $('custom-topic-input') ? $('custom-topic-input').value.trim() : '';
+
     const keyInput = $('gemini-api-key') ? $('gemini-api-key').value.trim() : '';
     const apiKey = keyInput || localStorage.getItem('speakflow30_gemini_key') || '';
     if (keyInput) {
       try { localStorage.setItem('speakflow30_gemini_key', keyInput); } catch {}
     }
 
-    profile.lastPillarIndex = nextIdx;
+    if (!customTopic) {
+      profile.lastPillarIndex = nextIdx;
+    }
     saveJSON('speakflow30_profile', profile);
 
     if (errEl) errEl.classList.add('hidden');
 
-    // If user provided a Gemini API key, auto-generate an original AI lesson tailored to their level & weak phrases
+    // If user provided a Gemini API key, auto-generate an original AI lesson tailored to their level, topic & weak phrases
     if (apiKey) {
       if (btnEl) btnEl.disabled = true;
-      if (labelEl) labelEl.textContent = `Creating ${level} ${PILLAR_LABELS[nextPillar]} Lesson...`;
+      if (labelEl) labelEl.textContent = `Creating ${level} ${customTopic || PILLAR_LABELS[nextPillar]} Lesson...`;
 
       const weakPhrases = vault.filter((v) => v.difficulty === 'hard').map((v) => v.phrase).slice(0, 5);
       const recentPhrases = vault.map((v) => v.phrase).slice(0, 20);
 
       const pillarInstructions = {
-        everyday: 'Everyday life, social small talk, travel, solving daily problems, or expressing opinions naturally with friends/colleagues.',
+        everyday: 'Everyday life, social small talk, daily situations, friendships, or solving everyday problems naturally.',
+        speaking: 'Free speaking fluency, storytelling, sharing opinions, buying time naturally, or balanced debates.',
+        culture: 'Travel, culture, movies/books, health/habits, technology, or modern society discussions.',
+        grammar: 'Spoken grammar in real context (tenses, conditionals, phrasal verbs, modals, or natural connectors).',
         career: `Workplace communication, meetings, teamwork, and clear professional expression${profession ? ` (context: ${profession})` : ''}.`,
         interview: `English job interview preparation, self-presentation, STAR behavioral answers, or confidence${profession ? ` (target role: ${profession})` : ''}.`
       };
 
-      const prompt = `You are an adaptive English coach. The learner's current level is ${level} (moving from B1 toward B2/C1).
-Today's automatic focus pillar: ${PILLAR_LABELS[nextPillar]} — ${pillarInstructions[nextPillar]}
+      const focusDescription = customTopic
+        ? `Custom Topic requested by learner: "${customTopic}" (focus on natural spoken fluency and level growth).`
+        : `${PILLAR_LABELS[nextPillar]} — ${pillarInstructions[nextPillar]}`;
+
+      const prompt = `You are an adaptive English fluency coach. The learner's current level is ${level} (developing overall general English fluency, free speaking, and interview readiness).
+Today's focus: ${focusDescription}
 Weak phrases they struggled with recently (reinforce 1 if natural, otherwise pick fresh ones): ${weakPhrases.join(', ') || 'none'}.
 Avoid repeating these already-learned phrases: ${recentPhrases.join(', ') || 'none'}.
 
 CRITICAL RULES:
-1. "contextText" must be 110-140 words, natural, clear for a ${level} learner stretching upward, and MUST contain all 5 "phrase" values EXACTLY verbatim.
-2. Each of the 5 "expressions" must be practical, high-value phrases for ${PILLAR_LABELS[nextPillar]}.
-3. Return ONLY valid JSON:
+1. "contextText" must be 110-145 words, natural, engaging for a ${level} learner stretching upward, and MUST contain all 5 "phrase" values EXACTLY verbatim.
+2. Include a helpful "grammarTip" explaining one practical spoken grammar or fluency pattern used in the passage.
+3. Include 2 multiple-choice "quickCheck" questions testing grammar or natural usage from the lesson.
+4. Return ONLY valid JSON:
 {
   "title": "Short engaging title",
-  "category": "Auto · ${PILLAR_LABELS[nextPillar]}",
+  "category": "${customTopic ? `Custom · ${customTopic}` : `Auto · ${PILLAR_LABELS[nextPillar]}`}",
   "level": "${level} Adaptive",
   "contextText": "...",
   "expressions": [
     {
       "phrase": "exact phrase from contextText",
       "feynmanExplanation": "Very clear, simple English explanation in 1 sentence",
-      "basicAlternative": "simple B1 way to say it",
+      "basicAlternative": "simple way to say it",
       "proExample": "Natural example sentence"
     }
   ],
-  "roleplayPrompt": "A realistic ${PILLAR_LABELS[nextPillar]} challenge asking for a 4-5 sentence response using at least 3 of today's expressions."
+  "grammarTip": {
+    "title": "Short grammar/fluency rule title",
+    "explanation": "1-2 clear sentences on how to use this pattern in real speech.",
+    "example": "A clear contrasting example sentence."
+  },
+  "quickCheck": [
+    {
+      "question": "Short grammar or usage question",
+      "options": ["Option A", "Option B", "Option C"],
+      "correctIndex": 0,
+      "explanation": "1 short sentence explaining why."
+    }
+  ],
+  "roleplayPrompt": "A realistic speaking or roleplay challenge asking for a 4-5 sentence response using at least 3 of today's expressions."
 }`;
 
       try {
@@ -1279,6 +1512,7 @@ CRITICAL RULES:
         parsed.track = 'custom';
         customLessons.unshift(parsed);
         saveJSON(KEYS.CUSTOM_LESSONS, customLessons);
+        if ($('custom-topic-input')) $('custom-topic-input').value = '';
         loadLesson(parsed.id);
         $('modal-lessons').classList.add('hidden');
         return;
@@ -1294,11 +1528,12 @@ CRITICAL RULES:
     }
 
     // Offline Adaptive Engine (works 100% automatically with zero API key)
-    const { lesson, isNew } = buildOfflineAutoLesson(nextPillar, level, profession);
+    const { lesson, isNew } = buildOfflineAutoLesson(nextPillar, level, profession, customTopic);
     if (isNew) {
       customLessons.unshift(lesson);
       saveJSON(KEYS.CUSTOM_LESSONS, customLessons);
     }
+    if ($('custom-topic-input')) $('custom-topic-input').value = '';
     loadLesson(lesson.id);
     $('modal-lessons').classList.add('hidden');
   }
@@ -1353,7 +1588,7 @@ CRITICAL RULES:
       btn.innerHTML = `
         <div>
           <strong>${escapeHTML(lesson.title)}</strong>
-          <div class="muted-text">${escapeHTML(lesson.category || 'Custom')} · ${escapeHTML(lesson.level || 'B1→C1')}</div>
+          <div class="muted-text">${escapeHTML(lesson.category || 'Custom')} · ${escapeHTML(lesson.level || 'A2→C1')}</div>
         </div>
         <span class="tag">${lesson.expressions.length} phrases</span>
       `;
@@ -1379,22 +1614,35 @@ CRITICAL RULES:
   $('tab-lessons-import').addEventListener('click', () => switchLessonTab('import'));
 
   $('btn-copy-ai-prompt').addEventListener('click', async () => {
-    const promptText = `Generate a C1 Business/Interview English lesson JSON for SpeakFlow 30 with this exact structure:
+    const promptText = `Generate an English fluency lesson JSON for SpeakFlow 30 (Topic: [YOUR TOPIC], Level: [A2/B1/B2/C1]) with this exact structure:
 {
   "id": "lesson-custom-${Date.now()}",
   "title": "Lesson Title",
-  "category": "Interview / Business",
-  "level": "C1 Professional",
-  "contextText": "A 120-150 word realistic scenario containing all 5 exact target phrases verbatim.",
+  "category": "Free Speaking / Everyday / Grammar / Interview",
+  "level": "B1 → B2",
+  "contextText": "A 120-150 word realistic passage containing all 5 exact target phrases verbatim.",
   "expressions": [
     {
       "phrase": "exact phrase from contextText",
       "feynmanExplanation": "Plain English explanation in 1 sentence.",
-      "basicAlternative": "simple B1 version",
-      "proExample": "Natural C1 example sentence."
+      "basicAlternative": "simple version",
+      "proExample": "Natural example sentence."
     }
   ],
-  "roleplayPrompt": "A realistic interview or professional challenge asking the user to respond in 4-5 sentences using at least 3 expressions."
+  "grammarTip": {
+    "title": "Key Grammar or Fluency Pattern",
+    "explanation": "1-2 clear sentences explaining how to use it naturally.",
+    "example": "Clear example sentence."
+  },
+  "quickCheck": [
+    {
+      "question": "Short grammar or usage question",
+      "options": ["Option A", "Option B", "Option C"],
+      "correctIndex": 0,
+      "explanation": "Short explanation."
+    }
+  ],
+  "roleplayPrompt": "A realistic speaking or roleplay challenge asking the user to respond in 4-5 sentences using at least 3 expressions."
 }
 Return ONLY valid JSON.`;
     try {

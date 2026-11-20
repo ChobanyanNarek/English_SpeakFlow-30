@@ -1270,6 +1270,7 @@ h1, h2, h3, h4 {
 
 .vault-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -1433,4 +1434,159 @@ h1, h2, h3, h4 {
   border-radius: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border-hairline);
+}
+
+/* Stage 1 Left Column Stack (Reading + Grammar Tip + Quick Check) */
+.stage1-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Grammar & Fluency Spotlight */
+.grammar-tip-card {
+  border-left: 3px solid var(--accent);
+}
+
+.grammar-tip-title {
+  font-size: 1.02rem;
+  margin: 6px 0;
+}
+
+.grammar-tip-text {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.grammar-tip-example {
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+/* Quick Check Mini-Quiz */
+.quick-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.qc-item {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-hairline);
+}
+
+.qc-question {
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.qc-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.qc-option-btn {
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qc-option-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.qc-option-btn.correct {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success-text);
+  font-weight: 600;
+}
+
+.qc-option-btn.wrong {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.qc-explanation {
+  margin: 9px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* Auto-Plan Level Select & Topic Chips */
+.select-input {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.pillar-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.pillar-chip {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pillar-chip:hover {
+  border-color: var(--accent);
+}
+
+.pillar-chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Stage 3 Fluency Metrics Row */
+.fluency-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.metric-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
