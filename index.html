@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SpeakFlow 30 — Daily 30-Minute English Mastery</title>
+  <meta name="description" content="A distraction-free 30-minute daily English mastery engine combining Shadowing, Active Output, Roleplay, and Spaced Repetition." />
+
+  <!-- PWA & Mobile Home Screen Tags -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <meta name="theme-color" content="#1D4ED8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SpeakFlow 30" />
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Persistent Master Progress Line -->
+  <div class="master-progress-track" aria-hidden="true">
+    <div id="master-progress-bar" class="master-progress-fill" style="width: 0%"></div>
+  </div>
+
+  <!-- Top Focus Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <img src="./icon.svg" alt="" class="brand-icon" width="28" height="28" />
+        <span class="brand-name">SpeakFlow <span class="brand-num">30</span></span>
+      </div>
+      <button id="btn-open-lessons" class="lesson-pill" type="button" title="Switch or import lesson">
+        <span id="header-lesson-title" class="lesson-pill-text">Loading...</span>
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="header-center">
+      <div class="master-timer-group" role="timer" aria-label="30-Minute Master Timer">
+        <span class="timer-label">SESSION</span>
+        <span id="master-timer-display" class="timer-digits">30:00</span>
+        <button id="btn-master-toggle" class="icon-btn" type="button" title="Start / Pause session timer" aria-label="Start or pause session timer">
+          <svg id="icon-master-play" class="icon-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="icon-master-pause" class="icon-sm hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button id="btn-master-reset" class="icon-btn" type="button" title="Reset session" aria-label="Reset current session">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="ambient-control">
+        <button id="btn-ambient-toggle" class="tool-btn" type="button" title="Toggle ambient focus sound">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span id="ambient-label" class="hide-mobile">Sound: Off</span>
+        </button>
+      </div>
+
+      <button id="btn-open-vault" class="tool-btn" type="button" title="Streak & Memory Vault">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        <span class="hide-mobile">Vault</span>
+        <span id="vault-due-badge" class="due-badge hidden">0</span>
+      </button>
+
+      <button id="btn-fullscreen" class="icon-btn hide-mobile" type="button" title="Toggle Focus Fullscreen" aria-label="Toggle fullscreen">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+
+      <button id="btn-theme-toggle" class="icon-btn" type="button" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+        <svg id="icon-sun" class="icon-sm hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg id="icon-moon" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <!-- Smart Warm-Up Banner (Day 2+ Spaced Repetition) -->
+    <section id="blitz-banner" class="blitz-banner hidden" aria-label="Smart Warm-Up">
+      <div class="blitz-banner-content">
+        <div class="blitz-badge">SMART WARM-UP</div>
+        <div>
+          <strong id="blitz-banner-title">You have items due for review</strong>
+          <p id="blitz-banner-sub" class="muted-text">Run a 60-Second Blitz Recall using your own past sentences before today's session.</p>
+        </div>
+      </div>
+      <div class="blitz-banner-actions">
+        <button id="btn-start-blitz" class="btn btn-primary btn-sm" type="button">Start 60s Blitz</button>
+        <button id="btn-dismiss-blitz" class="btn btn-ghost btn-sm" type="button">Skip</button>
+      </div>
+    </section>
+
+    <!-- 3-Stage Guided Stepper -->
+    <nav class="stage-stepper" aria-label="30-Minute Workflow Stages">
+      <button id="step-btn-1" class="step-item active" type="button" data-stage="1">
+        <span class="step-num">1</span>
+        <span class="step-meta">
+          <span class="step-title">Input &amp; Shadowing</span>
+          <span class="step-time">00:00 – 10:00</span>
+        </span>
+      </button>
+      <div class="step-connector"></div>
+      <button id="step-btn-2" class="step-item locked" type="button" data-stage="2" disabled>
+        <span class="step-num">2</span>
+        <span class="step-meta">
+          <span class="step-title">Deep Encoding</span>
+          <span class="step-time">10:00 – 20:00</span>
+        </span>
+        <svg class="step-lock icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </button>
+      <div class="step-connector"></div>
+      <button id="step-btn-3" class="step-item locked" type="button" data-stage="3" disabled>
+        <span class="step-num">3</span>
+        <span class="step-meta">
+          <span class="step-title">High-Stakes Roleplay</span>
+          <span class="step-time">20:00 – 30:00</span>
+        </span>
+        <svg class="step-lock icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </button>
+    </nav>
+
+    <!-- STAGE 1: INPUT & RHYTHM — SHADOWING -->
+    <section id="stage-1" class="stage-panel">
+      <div class="stage-header">
+        <div>
+          <span class="stage-kicker">STAGE 1 · 10-MINUTE BLOCK</span>
+          <h1 id="stage1-lesson-title" class="stage-heading">Navigating Scope Creep Diplomatically</h1>
+        </div>
+        <div class="stage-timer-pill">
+          <span class="timer-label">STAGE 1</span>
+          <span id="stage1-timer" class="timer-digits">10:00</span>
+        </div>
+      </div>
+
+      <!-- TTS Controls -->
+      <div class="tts-toolbar">
+        <div class="tts-buttons">
+          <button id="btn-tts-play" class="btn btn-primary" type="button">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <span id="tts-play-label">Read Aloud</span>
+          </button>
+          <button id="btn-tts-stop" class="btn btn-secondary hidden" type="button">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+            <span>Stop</span>
+          </button>
+        </div>
+
+        <div class="tts-speed-group" role="group" aria-label="Playback speed">
+          <span class="speed-label">Speed</span>
+          <button class="speed-btn" type="button" data-speed="0.75">0.75x</button>
+          <button class="speed-btn active" type="button" data-speed="1">1.0x</button>
+          <button class="speed-btn" type="button" data-speed="1.2">1.2x</button>
+        </div>
+
+        <div class="shadowing-hint">
+          Repeat 0.5s behind the voice. Click any highlighted phrase to inspect.
+        </div>
+      </div>
+
+      <div class="stage1-grid">
+        <!-- Reading / Shadowing Card -->
+        <article class="card reading-card">
+          <div class="card-header-row">
+            <span id="lesson-level-tag" class="tag">C1 Professional</span>
+            <span id="lesson-category-tag" class="muted-text">Product Strategy &amp; Pushback</span>
+          </div>
+          <p id="reading-passage" class="reading-passage"></p>
+        </article>
+
+        <!-- Right Column: Interactive Vocabulary Inspector + Completion Gate -->
+        <aside class="stage1-sidebar">
+          <div id="vocab-inspector" class="card inspector-card">
+            <div class="inspector-header">
+              <span class="stage-kicker">VOCABULARY INSPECTOR</span>
+              <div style="display:flex; gap:6px;">
+                <button id="btn-speak-phrase" class="btn btn-ghost btn-xs" type="button" title="Listen to this phrase">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  Listen
+                </button>
+                <button id="btn-shadow-mic" class="btn btn-secondary btn-xs" type="button" title="Say this phrase aloud to check pronunciation">
+                  Speak &amp; Check
+                </button>
+              </div>
+            </div>
+            <h2 id="inspector-phrase" class="inspector-phrase">Select a phrase</h2>
+            <p id="inspector-feynman" class="inspector-feynman">Click any highlighted expression in the passage to see its plain-English Feynman explanation and B1 vs. C1 contrast.</p>
+            <div id="inspector-examples" class="contrast-box hidden">
+              <div class="contrast-row">
+                <span class="contrast-label b1">Basic B1</span>
+                <span id="inspector-basic" class="contrast-text"></span>
+              </div>
+              <div class="contrast-row">
+                <span class="contrast-label c1">Pro C1</span>
+                <span id="inspector-pro" class="contrast-text"></span>
+              </div>
+            </div>
+            <div id="shadow-mic-feedback" class="feedback-box hidden" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="card gate-card">
+            <div class="gate-header">
+              <span class="stage-kicker">COMPLETION GATE</span>
+              <span id="stage1-check-count" class="gate-count">0 / 5 Shadowed</span>
+            </div>
+            <ul id="stage1-checklist" class="checklist"></ul>
+            <button id="btn-unlock-stage2" class="btn btn-primary btn-full" type="button" disabled>
+              Complete 5 Expressions to Unlock Stage 2
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- STAGE 2: DEEP ENCODING & ACTIVE OUTPUT -->
+    <section id="stage-2" class="stage-panel hidden">
+      <div class="stage-header">
+        <div>
+          <span class="stage-kicker">STAGE 2 · 10-MINUTE BLOCK</span>
+          <h2 class="stage-heading">Deep Encoding &amp; Active Output</h2>
+          <p class="muted-text">Explain each phrase in plain English (Feynman), then anchor it to your own real work or life.</p>
+        </div>
+        <div class="stage-timer-pill">
+          <span class="timer-label">STAGE 2</span>
+          <span id="stage2-timer" class="timer-digits">10:00</span>
+        </div>
+      </div>
+
+      <div id="anchor-builder-list" class="anchor-list"></div>
+
+      <div class="stage-footer-bar card">
+        <div class="gate-status">
+          <strong id="stage2-anchor-count">0 / 5 Personal Anchors Completed</strong>
+          <span class="muted-text">Fill in all 5 Personal Anchor sentences to unlock Stage 3.</span>
+        </div>
+        <button id="btn-unlock-stage3" class="btn btn-primary" type="button" disabled>
+          Unlock Stage 3: Roleplay
+        </button>
+      </div>
+    </section>
+
+    <!-- STAGE 3: HIGH-STAKES ROLEPLAY & SYNTHESIS -->
+    <section id="stage-3" class="stage-panel hidden">
+      <div class="stage-header">
+        <div>
+          <span class="stage-kicker">STAGE 3 · 10-MINUTE BLOCK</span>
+          <h2 class="stage-heading">High-Stakes Roleplay &amp; Synthesis</h2>
+          <p class="muted-text">Respond naturally under time pressure without translating. Aim for at least 3 target expressions.</p>
+        </div>
+        <div class="stage-timer-pill">
+          <span class="timer-label">STAGE 3</span>
+          <span id="stage3-timer" class="timer-digits">10:00</span>
+        </div>
+      </div>
+
+      <div class="card scenario-card">
+        <span class="stage-kicker">SCENARIO CHALLENGE</span>
+        <p id="roleplay-prompt" class="scenario-prompt"></p>
+      </div>
+
+      <div class="card tracker-card">
+        <div class="tracker-header">
+          <span class="stage-kicker">LIVE TARGET PHRASE TRACKER</span>
+          <span id="roleplay-tracker-count" class="gate-count">0 / 5 Used (Goal: 3+)</span>
+        </div>
+        <div id="roleplay-phrase-badges" class="phrase-badges"></div>
+      </div>
+
+      <div class="card response-card">
+        <div class="response-toolbar">
+          <label for="roleplay-textarea" class="stage-kicker">YOUR RESPONSE</label>
+          <div class="response-actions">
+            <button id="btn-roleplay-mic" class="btn btn-secondary btn-sm" type="button" title="Speak your response">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              <span>Voice Input</span>
+            </button>
+          </div>
+        </div>
+        <textarea id="roleplay-textarea" class="roleplay-textarea" rows="6" placeholder="Type or speak your response here... As you include today's expressions, the tracker above will automatically check them off."></textarea>
+        <div class="response-footer">
+          <span id="roleplay-word-count" class="muted-text">0 words</span>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btn-roleplay-check" class="btn btn-primary" type="button">
+              Check My Response
+            </button>
+            <button id="btn-complete-session" class="btn btn-success" type="button">
+              Complete 30-Min Session &amp; Night Recall
+            </button>
+          </div>
+        </div>
+        <div id="roleplay-feedback-panel" class="feedback-box hidden" style="margin-top: 14px;"></div>
+      </div>
+    </section>
+
+    <!-- SESSION COMPLETE & 2-MINUTE NIGHT RECALL CARD -->
+    <section id="stage-complete" class="stage-panel hidden">
+      <div class="complete-hero card">
+        <div class="complete-badge">SESSION COMPLETE</div>
+        <h2 class="stage-heading">Great work! Today's 5 expressions are locked in.</h2>
+        <p id="complete-summary-text" class="muted-text">Saved to your Memory Vault for spaced repetition (1d / 3d / 7d) and added to your streak.</p>
+        <div class="complete-actions">
+          <button id="btn-copy-recall" class="btn btn-primary" type="button">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span id="copy-recall-label">Copy for Night Recall</span>
+          </button>
+          <button id="btn-toggle-flashcards" class="btn btn-secondary" type="button">Flashcard Flip Mode</button>
+          <button id="btn-next-auto-lesson" class="btn btn-success" type="button">Start Next Auto-Lesson →</button>
+        </div>
+      </div>
+
+      <!-- Summary List View -->
+      <div id="night-recall-list" class="recall-grid"></div>
+
+      <!-- Flashcard Flip Mode View -->
+      <div id="night-recall-flashcards" class="flashcard-stage hidden">
+        <div class="flashcard-controls">
+          <span id="flashcard-counter" class="muted-text">Card 1 of 5</span>
+          <div class="flashcard-nav">
+            <button id="btn-fc-prev" class="btn btn-secondary btn-sm" type="button">Previous</button>
+            <button id="btn-fc-next" class="btn btn-secondary btn-sm" type="button">Next</button>
+          </div>
+        </div>
+        <div id="flashcard-box" class="flashcard-box" tabindex="0" role="button" aria-label="Flip flashcard">
+          <div class="flashcard-inner">
+            <div class="flashcard-front card">
+              <span class="stage-kicker">TAP TO FLIP · TARGET PHRASE</span>
+              <h3 id="fc-front-phrase" class="fc-phrase"></h3>
+              <p id="fc-front-hint" class="muted-text"></p>
+            </div>
+            <div class="flashcard-back card">
+              <span class="stage-kicker">FEYNMAN &amp; YOUR PERSONAL ANCHOR</span>
+              <p id="fc-back-feynman" class="fc-feynman"></p>
+              <div class="fc-anchor-box">
+                <span class="contrast-label c1">Your Anchor</span>
+                <p id="fc-back-anchor"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: LESSON SELECTOR & CUSTOM IMPORT -->
+  <div id="modal-lessons" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-lessons-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-lessons-title">Auto-Curriculum &amp; Profile</h2>
+        <button class="icon-btn modal-close" data-close="modal-lessons" type="button" aria-label="Close">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-tabs">
+        <button id="tab-lessons-endless" class="tab-btn active" type="button">Auto-Plan &amp; Profile</button>
+        <button id="tab-lessons-browse" class="tab-btn" type="button">Library</button>
+        <button id="tab-lessons-import" class="tab-btn" type="button">Paste JSON</button>
+      </div>
+
+      <div id="panel-lessons-endless" class="modal-body">
+        <div class="endless-box">
+          <div class="vault-stats-row" style="margin-bottom: 14px;">
+            <div class="stat-box">
+              <span class="stat-value" id="profile-level-badge">B1</span>
+              <span class="stat-label">Current Level</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="profile-next-pillar">Everyday</span>
+              <span class="stat-label">Next Pillar</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="profile-weak-count">0</span>
+              <span class="stat-label">Weak Phrases</span>
+            </div>
+          </div>
+
+          <p class="muted-text" style="margin-bottom: 12px;">
+            Lessons are <strong>automatically created for you</strong>—rotating across <strong>Everyday Life</strong>, <strong>Career</strong>, and <strong>Interviews</strong>, adapting from <strong>B1 → B2 → C1</strong> based on your progress and Hard Mode phrases.
+          </p>
+
+          <div class="field-group" style="margin-bottom: 12px;">
+            <label class="field-label" for="endless-role-input">Your Profession / Field (Optional — won't limit everyday topics)</label>
+            <input id="endless-role-input" class="text-input" type="text" placeholder="e.g., Software Engineer, Designer, Marketing, Product Manager..." />
+          </div>
+
+          <div class="field-group" style="margin-bottom: 14px;">
+            <label class="field-label" for="gemini-api-key">Gemini API Key (Optional — for unlimited AI-written daily lessons)</label>
+            <input id="gemini-api-key" class="text-input" type="password" placeholder="Paste Gemini API Key (AIza...) or leave empty for built-in Auto Engine" autocomplete="off" />
+          </div>
+
+          <button id="btn-auto-generate-now" class="btn btn-primary btn-full" type="button">
+            <span id="ai-gen-label">Generate Next Auto-Lesson Now</span>
+          </button>
+          <p id="ai-gen-error" class="error-text hidden"></p>
+        </div>
+      </div>
+
+      <div id="panel-lessons-browse" class="modal-body hidden">
+        <div class="vault-filters" style="margin-bottom: 12px;">
+          <button class="track-filter-btn filter-btn active" data-track="all" type="button">All</button>
+          <button class="track-filter-btn filter-btn" data-track="everyday" type="button">Everyday (B1→B2)</button>
+          <button class="track-filter-btn filter-btn" data-track="career" type="button">Career</button>
+          <button class="track-filter-btn filter-btn" data-track="interview" type="button">Interviews</button>
+          <button class="track-filter-btn filter-btn" data-track="custom" type="button">Auto / Custom</button>
+        </div>
+        <div id="lesson-list" class="lesson-list"></div>
+      </div>
+
+      <div id="panel-lessons-import" class="modal-body hidden">
+        <div class="import-helper">
+          <p class="muted-text">Paste a JSON lesson generated by Gemini or any AI. Need a prompt?</p>
+          <button id="btn-copy-ai-prompt" class="btn btn-secondary btn-xs" type="button">Copy AI Lesson Generator Prompt</button>
+        </div>
+        <textarea id="custom-lesson-json" class="import-textarea" rows="10" placeholder='{
+  "id": "lesson-custom-01",
+  "title": "Your Lesson Title",
+  "level": "C1 Professional",
+  "contextText": "120-150 word passage containing all 5 phrases...",
+  "expressions": [ ... ],
+  "roleplayPrompt": "Your scenario challenge..."
+}'></textarea>
+        <p id="import-error" class="error-text hidden"></p>
+        <div class="modal-footer-actions">
+          <button id="btn-import-lesson" class="btn btn-primary" type="button">Load Custom Lesson</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MEMORY VAULT & STREAK HEATMAP -->
+  <div id="modal-vault" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-vault-title">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <h2 id="modal-vault-title">Memory Vault &amp; Consistency</h2>
+        <button class="icon-btn modal-close" data-close="modal-vault" type="button" aria-label="Close">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="vault-stats-row">
+          <div class="stat-box">
+            <span class="stat-value" id="stat-streak">0</span>
+            <span class="stat-label">Day Streak</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-value" id="stat-total-sessions">0</span>
+            <span class="stat-label">Sessions Done</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-value" id="stat-mastered-count">0</span>
+            <span class="stat-label">Phrases Saved</span>
+          </div>
+        </div>
+
+        <div class="heatmap-section">
+          <div class="heatmap-header">
+            <span class="stage-kicker">28-DAY CONSISTENCY (TARGET: 5 DAYS/WK)</span>
+          </div>
+          <div id="streak-heatmap" class="heatmap-grid"></div>
+        </div>
+
+        <div class="vault-list-header">
+          <div class="vault-filters">
+            <button class="filter-btn active" data-filter="all" type="button">All</button>
+            <button class="filter-btn" data-filter="hard" type="button">Hard Mode</button>
+            <button class="filter-btn" data-filter="due" type="button">Due Now</button>
+          </div>
+          <button id="btn-vault-blitz" class="btn btn-primary btn-xs" type="button">Launch 60s Blitz Recall</button>
+        </div>
+
+        <div id="vault-items-list" class="vault-items-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: 60-SECOND BLITZ RECALL -->
+  <div id="modal-blitz" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-blitz-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="stage-kicker">SPACED REPETITION WARM-UP</span>
+          <h2 id="modal-blitz-title">60-Second Blitz Recall</h2>
+        </div>
+        <div class="stage-timer-pill">
+          <span id="blitz-timer" class="timer-digits">01:00</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="blitz-active-view">
+          <p class="muted-text" id="blitz-progress-label">Item 1 of 3</p>
+          <div class="blitz-card">
+            <p class="blitz-hint" id="blitz-feynman-clue"></p>
+            <p class="blitz-sentence" id="blitz-blank-sentence"></p>
+          </div>
+          <div class="blitz-input-row">
+            <input id="blitz-answer-input" type="text" class="text-input" placeholder="Type the missing phrase..." autocomplete="off" />
+            <button id="btn-blitz-check" class="btn btn-primary" type="button">Check</button>
+          </div>
+          <p id="blitz-feedback" class="blitz-feedback hidden"></p>
+          <div class="blitz-skip-row">
+            <button id="btn-blitz-reveal" class="btn btn-ghost btn-xs" type="button">Reveal Answer</button>
+            <button id="btn-blitz-close" class="btn btn-ghost btn-xs" type="button">Exit Blitz</button>
+          </div>
+        </div>
+        <div id="blitz-done-view" class="hidden">
+          <h3 id="blitz-score-heading">Blitz Complete!</h3>
+          <p id="blitz-score-sub" class="muted-text"></p>
+          <div class="modal-footer-actions">
+            <button id="btn-blitz-finish" class="btn btn-primary" type="button">Start Today's 30-Min Session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./data/lessons.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
